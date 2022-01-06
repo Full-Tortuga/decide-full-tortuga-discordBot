@@ -12,4 +12,4 @@ Cuenta con distintos comandos.
 
 - !graphs: También le hace falta tener el tipo de votación y el número. Cuando lo solicitas, te manda un mensaje de que te las mandará pronto, y acto seguido te las envía. Si la votación no tiene gráficas generadas o no se encuentra la votación, te manda un mensaje diciéndote que no se pudo encontrar.
 
--!types: Muestra los tipos de votación disponibles que hay para que la persona que quiera pasarlo como parámetro sepa cuáles hay y cómo se escribirían.
+- !types: Muestra los tipos de votación disponibles que hay para que la persona que quiera pasarlo como parámetro sepa cuáles hay y cómo se escribirían.
