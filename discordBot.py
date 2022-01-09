@@ -1,4 +1,3 @@
-from inspect import _empty
 import discord
 from discord.ext import commands
 import requests,re, os, time
@@ -8,7 +7,6 @@ from requests.models import Response
 from selenium import webdriver
 import base64
 from dotenv import load_dotenv
-
 from testsBot import URL_BASE
 
 load_dotenv()
