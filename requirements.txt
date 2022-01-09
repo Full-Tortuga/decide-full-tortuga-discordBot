@@ -1,5 +1,4 @@
 discord.py == 1.7.3
 dotenv
 selenium == 3.14.0
-requests:23
-collections
+requests == 2.23.0

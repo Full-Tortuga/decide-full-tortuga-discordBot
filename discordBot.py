@@ -77,7 +77,7 @@ async def details(context, typevote, num):
         desc = data['desc']
         postproc = data['postproc']
         response= "Has elegido ver la votación con id " + str(id) + ", cuyo nombre es " + str(name) + ", y su descripción: " + str(desc) + "." 
-    
+
     except:
         response = "Lo siento, ha habido un error. ¡Vuélvelo a intentar!"
 
@@ -186,3 +186,4 @@ def translate_type_to_url_graphs(typevote, num):
     return url
 
 bot.run(TOKEN_BOT)
+
