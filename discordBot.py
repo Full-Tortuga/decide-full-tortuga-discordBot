@@ -1,20 +1,23 @@
+from inspect import _empty
 import discord
 from discord.ext import commands
-import requests
-import re
+import requests,re, os, time
 from collections import OrderedDict
 from requests.api import post
-import os
 from requests.models import Response
 from selenium import webdriver
 import base64
 from dotenv import load_dotenv
 
+from testsBot import URL_BASE
+
 load_dotenv()
-TOKEN_BOT = os.getenv('TOKEN')
+TOKEN_BOT = os.environ['TOKEN']
 
-URL_BASE = "http://127.0.0.1:8000/"
-
+try:
+    requests.get("https://decide-full-tortuga-2.herokuapp.com/")
+except:
+    URL_BASE = "http://127.0.0.1:8000/"
 
 #bot prefix
 bot = commands.Bot(command_prefix='!') 
@@ -66,21 +69,10 @@ async def types(context):
 async def details(context, typevote, num):
 
     #Shows the details of the voting the user asks for
-    urlbase = "voting/"
-    if( typevote == "BV"):
-        url = URL_BASE + urlbase + "binaryVoting/?id=" + num
-    if( typevote  == "SV"):
-        url = URL_BASE + urlbase + "scoreVoting/?id=" + num 
-    if (typevote == "MV"):
-        url = URL_BASE + urlbase + "multipleVoting/?id=" + num
-    if( typevote == "V"):
-        url = URL_BASE + urlbase + "?id=" + num
-   
-
-    req = requests.get(url)
+    url = translate_type_to_url(typevote, num)
     
     try:
-        
+        req = requests.get(url)
         data = req.json()[0]
         id = data['id']
         name = data['name']
@@ -99,20 +91,10 @@ async def results(context, typevote, num):
 
     #Show the results of the voting the user asks for
 
-    urlbase = "voting/"
-    if( typevote == "BV"):
-        url = URL_BASE + urlbase + "binaryVoting/?id=" + num
-    if( typevote  == "SV"):
-        url = URL_BASE + urlbase + "scoreVoting/?id=" + num 
-    if (typevote == "MV"):
-        url = URL_BASE + urlbase + "multipleVoting/?id=" + num
-    if( typevote == "V"):
-        url = URL_BASE + urlbase + "?id=" + num
-   
-    req = requests.get(url)
+    url = translate_type_to_url(typevote, num)
 
     try:
-
+        req = requests.get(url)
         data = req.json()[0]
         if(data['end_date'] != None):
             id = data['id']
@@ -124,8 +106,8 @@ async def results(context, typevote, num):
             else:
                 r = re.findall("t\(\[(.*?)\]\)", postproc)
 
-                await context.send("Has elegido ver los resultados de la votación con id " + str(id) + ", cuyo nombre es " + str(name) + ", y su descripción: " + str(desc) + """".
-Los resultados de esta votación son:""")
+                await context.send("""Has elegido ver los resultados de la votación con id {}, cuyo nombre es {}, y su descripción: {}.
+                    Los resultados de esta votación son:""".format(str(id), str(name), str(desc)))
                 for i in range(0,len(r)):
                     r1 = r[i]
                     info1 = r1.split("), ")
@@ -145,31 +127,64 @@ Los resultados de esta votación son:""")
 
 
 @bot.command(name='graphs')
-async def graphs(context, votetype, num):
+async def graphs(context, typevote, num):
     try:
-        opengraph = open_graphs_generator_view(votetype, num)
-        base64_url_list=eval(opengraph[0]['graphs_url'])
-        b64_images=[]
-        await context.send('Ahora mismo te las mando.')
+        opengraph = open_graphs_generator_view(typevote, num)
+        if opengraph is not None:
+            base64_url_list=eval(opengraph[0]['graphs_url'])
+            b64_images=[]
+            await context.send('Ahora mismo te las mando.')
     
-        for i in range(0,len(base64_url_list)):
-            b64_images.append(base64_url_list[i].split(",")[1])
-            path="graph_"+str(num)+"_"+str(i)+".png"
-            with open(path,"wb") as f:
-                f.write(base64.b64decode(b64_images[i]))
-            await context.send(file=discord.File(path))
-            os.remove(path)
+            for i in range(0,len(base64_url_list)):
+                b64_images.append(base64_url_list[i].split(",")[1])
+                path="graph_"+str(num)+"_"+str(i)+".png"
+                with open(path,"wb") as f:
+                    f.write(base64.b64decode(b64_images[i]))
+                await context.send(file=discord.File(path))
+                os.remove(path)
+        else:
+            await context.send("Lo siento, ha habido un error. Vuélvelo a intentar.")
     except:
         response = "Lo siento, esa votación no está disponible. Vuélvelo a intentar."
         await context.send(response)
 
-def open_graphs_generator_view(votetype, num):
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    driver=webdriver.Chrome(options=options)
-    driver.get(URL_BASE+ 'visualizer/' + str(num))  #VISUALIZER_VIEW will be taken from setting in production
-    return requests.get(URL_BASE + "visualizer/graphs/?format=json&voting_id=" + str(num)+ "&voting_type="+ votetype).json()
-     
+def open_graphs_generator_view(typevote, num):
+    res = ""
+    try:
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        driver=webdriver.Chrome(options=options)
+        driver.get(URL_BASE+ translate_type_to_url_graphs(typevote, num))  #VISUALIZER_VIEW will be taken from setting in production
+        driver.quit()
+        time.sleep(5)
+        res = requests.get(URL_BASE + "visualizer/graphs/?format=json&voting_id=" + str(num)+ "&voting_type="+ typevote).json()
+       
+    except:
+        res = None
+    return res 
+    
+def translate_type_to_url(typevote, num):
+    path = "voting/"
+    if( typevote == "BV"):
+        url = URL_BASE + path + "binaryVoting/?id=" + num
+    if( typevote  == "SV"):
+        url = URL_BASE + path + "scoreVoting/?id=" + num 
+    if (typevote == "MV"):
+        url = URL_BASE + path + "multipleVoting/?id=" + num
+    if( typevote == "V"):
+        url =  URL_BASE + path + "?id=" + num
+    return url
 
+def translate_type_to_url_graphs(typevote, num):
+    path = "visualizer/"
+    if( typevote == "BV"):
+        url = path + "binaryVoting/" + num
+    if( typevote  == "SV"):
+        url =  path + "scoringVoting/" + num 
+    if (typevote == "MV"):
+        url = path + "multipleVoting/" + num
+    if( typevote == "V"):
+        url = path + num
+    return url
 
 bot.run(TOKEN_BOT)
